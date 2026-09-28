@@ -49,3 +49,21 @@ scroll wheel or `+`/`-` zooms, `i k h l` pans, `0` resets the view. `S` (capital
 the manifest rows for that photo, deletes crops of removed boxes, cuts crops for new ones and redraws
 the overlay and contact sheet. `q` quits (press twice to discard unsaved edits).
 Box colours: green X, blue O, grey junk, orange unlabeled, red selected.
+
+## Step 2 — dataset, preprocessing, augmentation
+
+```bash
+$PY scripts/dataset.py            # writes the `split` column into the manifest, prints the tiers
+$PY scripts/preview_preproc.py    # data/preview_preproc.jpg: raw | ink | binary | 6 augmentations
+```
+
+Split is by PHOTO (train: 1,2,6,8,9,10; val: 3,4,5,7; test: 11) so a re-shot drawing can never
+leak across tiers. Rows without an X/O label get an empty split and are excluded.
+
+Preprocessing (`to_ink`): min(R,G,B) -> subtract morphological-closing background -> divide by
+the crop's own peak -> 32x32. Background 0, stroke ~1, independent of marker colour and lighting.
+`binarize=True` thresholds at 0.4 for the ablation.
+
+Training-only augmentation: colour/brightness jitter on the raw crop (proves to_ink cancels it),
+then flip, rotate +-30, translate 10%, scale 0.8-1.2, mild perspective, stroke thicken/thin,
+small random erasing (glare gaps), Gaussian noise.
