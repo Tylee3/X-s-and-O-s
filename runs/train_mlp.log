@@ -1,0 +1,22 @@
+mlp: 532,802 parameters, 510 train / 93 val images
+epoch   1  train loss 0.671 acc 0.582   val loss 0.591 acc 0.892 *
+epoch   2  train loss 0.596 acc 0.722   val loss 0.500 acc 0.925 *
+epoch   5  train loss 0.542 acc 0.761   val loss 0.405 acc 0.925
+epoch   8  train loss 0.454 acc 0.788   val loss 0.369 acc 0.935 *
+epoch  10  train loss 0.454 acc 0.808   val loss 0.361 acc 0.914
+epoch  14  train loss 0.446 acc 0.837   val loss 0.323 acc 0.946 *
+epoch  15  train loss 0.393 acc 0.825   val loss 0.310 acc 0.935
+epoch  20  train loss 0.378 acc 0.859   val loss 0.265 acc 0.935
+epoch  23  train loss 0.449 acc 0.782   val loss 0.285 acc 0.957 *
+epoch  25  train loss 0.404 acc 0.824   val loss 0.267 acc 0.935
+epoch  30  train loss 0.430 acc 0.824   val loss 0.249 acc 0.957
+epoch  35  train loss 0.373 acc 0.827   val loss 0.232 acc 0.957
+epoch  40  train loss 0.330 acc 0.853   val loss 0.216 acc 0.946
+epoch  45  train loss 0.372 acc 0.825   val loss 0.211 acc 0.957
+epoch  50  train loss 0.378 acc 0.818   val loss 0.185 acc 0.978 *
+epoch  54  train loss 0.372 acc 0.855   val loss 0.179 acc 0.989 *
+epoch  55  train loss 0.375 acc 0.822   val loss 0.161 acc 0.978
+epoch  60  train loss 0.356 acc 0.833   val loss 0.139 acc 0.989
+
+best val acc 0.989   confusion [[O->O 37, O->X 1], [X->O 0, X->X 55]]
+outputs -> runs/mlp/  (1 val mistakes)

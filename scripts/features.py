@@ -1,58 +1,39 @@
 """
-features.py -- Step 3: hand-crafted features for the manual perceptron.
+features.py -- Step 3: hand-crafted features for the manual perceptron (playground version).
 
-A perceptron is  score = w1*f1 + w2*f2 + ... + bias,  predict X if score > 0.
-That is ONE straight line through feature space, so the features must be chosen
-so that X's and O's sit on opposite sides of some line.  Every feature below is
-"ink density in a region of the 32x32 image, divided by the average ink density
-of the whole image".  Dividing by the average makes the number independent of
-stroke thickness: 1.0 means "as inky as the picture on average", 3.0 means
-"three times inkier than average", 0 means empty.
+A perceptron is  score = w1*f1 + w2*f2 + ... + bias,  predict X if score > 0: ONE straight
+line through feature space.  So the features must put X's and O's on opposite sides of a line.
 
-Regions (see data/feature_masks.png):
-    centre   8x8 square in the middle      X crosses here, O is hollow here
-    ring     annulus radius 9..14 px       O's stroke lives here, X only passes through
-    diag     band along both diagonals     X's arms, O touches at 4 points only
-    corners  4 triangles in the corners    X's arm tips reach them, O never does
+Every feature is "ink density in a region / average ink density of the whole image", measured
+on the BackgroundNormalize output (ink bright, background 0), so it does not depend on stroke
+thickness or exposure.  1.0 = as inky as average, 3.0 = three times inkier, 0 = empty.
+
+Regions (data/feature_masks.png):
+    centre   16x16 middle square          X crosses here, O is hollow here
+    ring     annulus radius 18..28 px     O's stroke lives here, X only passes through
+    diag     band along both diagonals    X's arms; O touches it at 4 points only
+    corners  4 corner triangles           sounded right; measured identical for X and O (padding)
+The masks themselves live in models.region_masks so the exported ManualPerceptron uses the same ones.
 """
+import sys
+from pathlib import Path
+
 import numpy as np
+import torch
 
-SIZE = 32
-FEATURE_NAMES = ["centre", "ring", "diag", "corners"]
+sys.path.insert(0, str(Path(__file__).parent))
+from models import ManualPerceptron, FEATURE_NAMES, region_masks  # noqa: E402,F401
 
-
-def _masks(n: int = SIZE) -> dict:
-    yy, xx = np.mgrid[0:n, 0:n]
-    c = (n - 1) / 2
-    r = np.hypot(yy - c, xx - c)
-    m = {}
-    m["centre"] = (np.abs(yy - c) <= 4) & (np.abs(xx - c) <= 4)          # 8x8 middle square
-    m["ring"] = (r >= 9) & (r <= 14)
-    m["diag"] = (np.abs(yy - xx) <= 2) | (np.abs(yy + xx - (n - 1)) <= 2)
-    m["corners"] = ((yy + xx) < 11) | ((yy + xx) > 2 * (n - 1) - 11) | \
-                   ((yy - xx) > 20) | ((xx - yy) > 20)
-    return m
+_extractor = ManualPerceptron()          # weights irrelevant here; we only call .features()
 
 
-MASKS = _masks()
-
-
-def extract(img: np.ndarray) -> np.ndarray:
-    """img: 32x32 float ink image (0 = background, ~1 = stroke) -> 4 feature values."""
-    avg = img.mean() + 1e-6
-    return np.array([img[MASKS[k]].mean() / avg for k in FEATURE_NAMES], dtype=np.float32)
-
-
-def features_for_split(split: str, size: int = SIZE):
-    """Returns (features [N,4], labels [N] with 0=O 1=X) using the Step-2 preprocessing, no augmentation."""
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).parent))
+@torch.no_grad()
+def features_for_split(split: str):
+    """(features [N,4], labels [N] 0=O 1=X) using the browser-identical preprocessing, no augmentation."""
     from dataset import XODataset
-    ds = XODataset(split, size=size, augment=False)
-    X = np.stack([extract(ds[i][0][0].numpy()) for i in range(len(ds))])
-    y = ds.labels.numpy()
-    return X, y
+    ds = XODataset(split, augment=False)
+    X = torch.stack([ds[i][0] for i in range(len(ds))])
+    return _extractor.features(X).numpy(), ds.labels.numpy()
 
 
 if __name__ == "__main__":
