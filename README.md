@@ -38,10 +38,12 @@ $PY scripts/dataset.py            # writes the split column: train 1,2,6,8,9,10 
 $PY scripts/preview_preproc.py    # data/preview_preproc.jpg: raw | browser input | model view | augmentations
 ```
 
-Training-only augmentation on the colour crop (colour/brightness jitter, flip, rotate 30,
-translate 10%, scale 0.8-1.2, perspective, random source resolution so the browser's
-no-smoothing resize aliases every way), then the exact contract conversion, then stroke
-thicken/thin, white erasing patches (glare), noise.
+Training-only augmentation on the colour crop: colour/brightness jitter; ZOOM-OUT to 35-100% of
+the frame with random placement and 0.75-1.33 aspect squash (the website never crops and stretches
+photos into a square: the first model called every small O an X); flip, rotate 30, perspective;
+random source resolution so the browser's no-smoothing resize aliases every way; then the exact
+contract conversion; then stroke thicken/thin, white erasing patches (glare), noise. Each step is
+guarded: if the symbol vanished (local darkness peak < 25/255) the draw is retried.
 
 ## Step 3 — manual perceptron
 
