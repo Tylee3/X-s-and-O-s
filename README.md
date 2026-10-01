@@ -67,3 +67,50 @@ the crop's own peak -> 32x32. Background 0, stroke ~1, independent of marker col
 Training-only augmentation: colour/brightness jitter on the raw crop (proves to_ink cancels it),
 then flip, rotate +-30, translate 10%, scale 0.8-1.2, mild perspective, stroke thicken/thin,
 small random erasing (glare gaps), Gaussian noise.
+
+## Step 3 — manual perceptron
+
+```bash
+$PY scripts/features.py                              # per-class feature distributions (train)
+$PY scripts/perceptron_manual.py --show-mistakes     # edit WEIGHTS / BIAS at the top of the file
+```
+
+Features (features.py): ink density in centre square / ring / diagonal band / corners, each divided
+by the crop's average density. Corners turned out useless (padding). Weights centre +1, ring -1,
+bias -0.3 give train 96.3% / val 91.4%. Failures: flat ovals (stroke crosses the centre) - not fixable
+by any single line on these features.
+
+## Step 4 — MLP
+
+```bash
+$PY scripts/train.py --model mlp                 # runs/mlp/: curves.png, confusion.png, mistakes_val.jpg
+$PY scripts/train.py --model mlp --no-augment    # ablation: overfits (train 100%, val drops, val loss rises)
+$PY scripts/train.py --model mlp --binarize      # ablation: 0/1 pixels
+```
+
+1024 -> 128 -> 64 -> 1, ReLU, dropout 0.3, BCE-with-logits, Adam lr 1e-3, weight decay 1e-4,
+60 epochs, keep the best-val-accuracy epoch. Val 98.9% with augmentation, 95.7% without.
+
+## Step 5 — CNN
+
+```bash
+$PY scripts/train.py --model cnn                 # runs/cnn/
+$PY scripts/train.py --model cnn --no-augment    # ablation
+```
+
+models_cnn.py: conv(1->16,3x3) ReLU pool, conv(16->32,3x3) ReLU pool, flatten 2048, dropout 0.3,
+fc 64, fc 1. 136k params, only 4.8k of them in the conv layers. Same data/loss/optimizer/script as the MLP.
+
+## Step 6 — comparison
+
+```bash
+$PY scripts/compare.py --test      # results/: results.md, accuracy.png, confusion_*.png, curves_mlp_vs_cnn.png, mistakes_*.jpg
+```
+
+| classifier | train (510) | val (93) | test (49, photo11) |
+|---|---|---|---|
+| manual perceptron | 96.3% | 91.4% | 100% |
+| MLP | 98.4% | 98.9% | 100% |
+| CNN | 98.6% | 98.9% | 100% |
+
+`results/professor_questions.md` is the list of questions to rehearse (questions only).
