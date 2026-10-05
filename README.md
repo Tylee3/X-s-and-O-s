@@ -78,3 +78,19 @@ $PY scripts/live_demo.py --model cnn       # webcam rehearsal, m cycles CNN/MLP/
 Upload `artifacts/cnn.onnx` (or the others) on the playground website. `results/professor_questions.md`
 is the rehearsal list. Earlier results on the 32x32 ink pipeline (val 98.9% for both trained models)
 are in git history before the playground rework.
+
+## New photos end to end (what the class test looks like)
+
+```bash
+$PY scripts/segment.py data/live/live2_x4.png --out data/live_crops --thresh 18
+$PY scripts/segment.py data/live/live1_x4.png --out data/live_crops --thresh 14 --full-frame --append
+$PY scripts/edit_boxes.py live2_x4 --raw data/live --out data/live_crops
+$PY scripts/predict_photo.py data/live_crops      # <photo>_pred.jpg: boxes labelled by the exported CNN
+$PY scripts/predict_sheet.py data/live_crops      # <photo>_pred_sheet.jpg: every crop with its prediction
+```
+
+`--full-frame` skips board detection (a dark board fools the brightness-based detector). Low-res
+photos were upscaled 4x before segmenting. The exported CNN scored 100% on the 33 hand-boxed
+crops from two uncropped photos; its failures are faint light-coloured strokes in fragment boxes,
+and symbols smaller than ~1/3 of the frame. Final CNN = `runs/cnn` (zoom-out + faint-stroke
+augmentation); `runs/cnn_scale_only` is the zoom-out-only run kept for comparison.

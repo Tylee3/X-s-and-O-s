@@ -182,6 +182,16 @@ class XODataset(Dataset):
             x2 = x
         x3 = self.erase(x2)                                                       # white patch = glare gap
         x = x3 if stroke_contrast(x3) >= 25 / 255 else x2                          # unless it wiped the symbol
+        # FAINT STROKES: a light marker photographed from a distance is the #1 real-world failure
+        # (faint O's were called X on the first live photos).  Pull the whole image towards white
+        # by a random factor so the stroke's contrast drops to 15-100% of what it was; the
+        # in-model BackgroundNormalize then has to recover the shape from a weak signal, as it
+        # will in class.  Keep the guard so the stroke stays detectable at all.
+        if random.random() < 0.5:
+            k = random.uniform(0.15, 1.0)
+            x_faint = (1.0 - (1.0 - x) * k).clamp(-1, 1)                          # white = +1 stays, ink moves towards white
+            if stroke_contrast(x_faint) >= 12 / 255:
+                x = x_faint
         x = (x + 0.03 * torch.randn_like(x)).clamp(-1, 1)                        # sensor noise / board texture
         return x, self.labels[i]
 

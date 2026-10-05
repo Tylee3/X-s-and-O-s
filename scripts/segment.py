@@ -31,6 +31,7 @@ import numpy as np
 # --------------------------------------------------------------------------- #
 WORK_LONG_SIDE = 2400      # we do all detection on a copy resized to this long side (speed vs thin strokes)
 CLOSE_FRAC     = 0.020     # background-estimate kernel = 2% of long side (must exceed stroke width)
+FULL_FRAME     = False     # --full-frame: skip surface detection
 INK_THRESH     = 35        # min "darker than background" (0..255) to count as ink; ghosts are ~10-20
 JOIN_FRAC      = 0.005     # dilation radius to bridge small gaps in a stroke (0.5% of long side).
                            # Keep this SMALL: the two strokes of an X cross anyway; a big radius
@@ -237,7 +238,7 @@ def process(path: Path, out_root: Path, writer):
     ink = ink_channel(work)
     dark = darkness_vs_background(ink, long_side)
     mask = ink_mask(dark)
-    surface, found = find_surface(work)
+    surface, found = ((0, 0, work.shape[1], work.shape[0]), False) if FULL_FRAME else find_surface(work)
     shapes = filter_and_flag(find_shapes(mask, long_side), work.shape, surface)
 
     overlay = work.copy()
@@ -271,7 +272,7 @@ def process(path: Path, out_root: Path, writer):
 
 
 def main():
-    global INK_THRESH
+    global INK_THRESH, FULL_FRAME
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("photos", nargs="+", type=Path)
     ap.add_argument("--out", type=Path, default=Path("data/crops"))
@@ -279,8 +280,11 @@ def main():
                     help="min darkness-vs-background to count as ink (default %(default)s). "
                          "Lower (~25) for faded/dim photos, higher (~45) for glossy wrinkled paper.")
     ap.add_argument("--append", action="store_true", help="append to manifest.csv instead of overwriting")
+    ap.add_argument("--full-frame", action="store_true",
+                    help="skip board/paper detection and search the whole photo (dark boards fool the brightness-based detector)")
     args = ap.parse_args()
     INK_THRESH = args.thresh                                   # module-level knob, overridden per run
+    FULL_FRAME = args.full_frame
     args.out.mkdir(parents=True, exist_ok=True)
 
     manifest = args.out / "manifest.csv"

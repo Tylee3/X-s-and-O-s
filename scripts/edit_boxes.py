@@ -296,9 +296,10 @@ def main():
     others = [r for r in rows if r["photo"] != args.photo]
     if not mine:
         raise SystemExit(f"no rows for {args.photo} in {manifest}")
-    orig = cv2.imread(str(args.raw / f"{args.photo}.jpg"))
+    candidates = [q for ext in ("jpg", "jpeg", "png") for q in args.raw.glob(f"{args.photo}.{ext}")]
+    orig = cv2.imread(str(candidates[0])) if candidates else None
     if orig is None:
-        raise SystemExit(f"could not read {args.raw / (args.photo + '.jpg')}")
+        raise SystemExit(f"could not find {args.photo}.jpg/.png under {args.raw}")
 
     boxes = Boxes(mine, args.photo)
     ed = Editor(orig, boxes)
