@@ -8,7 +8,8 @@ It learns "diagonal stroke" once and finds it anywhere: fewer weights, position 
 
 Shapes (batch dimension omitted):
     input        1 x 64 x 64     playground tensor, ink dark, [-1,1]
-    normalize    1 x 64 x 64     BackgroundNormalize: ink bright, background 0
+    normalize    1 x 64 x 64     BackgroundNormalize (ink bright, background 0), then
+                                 CentreScale (symbol centred, zoomed to a standard size)
     conv1+pool   16 x 32 x 32    16 filters of 3x3; max over 2x2 blocks halves the size
     conv2+pool   32 x 16 x 16
     conv3+pool   64 x 8 x 8      one cell now summarises an 8x8 patch of the original
@@ -19,13 +20,13 @@ Shapes (batch dimension omitted):
 """
 import torch.nn as nn
 
-from models import BackgroundNormalize, SIZE
+from models import Normalize, SIZE
 
 
 class CNN(nn.Module):
-    def __init__(self, size: int = SIZE, channels=(16, 32, 64), fc: int = 64, dropout: float = 0.3):
+    def __init__(self, size: int = SIZE, channels=(16, 32, 64), fc: int = 64, dropout: float = 0.3, centre: bool = True, power: int = 4):
         super().__init__()
-        self.norm = BackgroundNormalize()
+        self.norm = Normalize(centre, power)
         blocks, c_in = [], 1
         for c_out in channels:
             blocks += [nn.Conv2d(c_in, c_out, kernel_size=3, padding=1), nn.ReLU(), nn.MaxPool2d(2)]

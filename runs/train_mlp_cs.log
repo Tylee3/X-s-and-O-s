@@ -1,0 +1,28 @@
+mlp: 532,802 parameters, 510 train / 93 val images
+epoch   1  train loss 0.663 acc 0.590   val loss 0.543 acc 0.882 *
+epoch   2  train loss 0.580 acc 0.696   val loss 0.430 acc 0.892 *
+epoch   4  train loss 0.553 acc 0.712   val loss 0.366 acc 0.914 *
+epoch   5  train loss 0.558 acc 0.702   val loss 0.377 acc 0.882
+epoch   9  train loss 0.484 acc 0.765   val loss 0.299 acc 0.925 *
+epoch  10  train loss 0.471 acc 0.751   val loss 0.304 acc 0.914
+epoch  15  train loss 0.501 acc 0.771   val loss 0.355 acc 0.860
+epoch  16  train loss 0.480 acc 0.755   val loss 0.305 acc 0.935 *
+epoch  20  train loss 0.460 acc 0.778   val loss 0.269 acc 0.925
+epoch  25  train loss 0.474 acc 0.778   val loss 0.303 acc 0.914
+epoch  30  train loss 0.476 acc 0.773   val loss 0.349 acc 0.839
+epoch  35  train loss 0.464 acc 0.755   val loss 0.319 acc 0.903
+epoch  40  train loss 0.476 acc 0.759   val loss 0.337 acc 0.914
+epoch  45  train loss 0.462 acc 0.751   val loss 0.354 acc 0.903
+epoch  50  train loss 0.448 acc 0.759   val loss 0.328 acc 0.892
+epoch  55  train loss 0.454 acc 0.757   val loss 0.350 acc 0.871
+epoch  60  train loss 0.421 acc 0.792   val loss 0.312 acc 0.871
+Traceback (most recent call last):
+  File "/Users/thoffman/cs221_xo/scripts/train.py", line 161, in <module>
+    main()
+  File "/Users/thoffman/cs221_xo/scripts/train.py", line 152, in main
+    model.load_state_dict(torch.load(run / "best.pt"))
+  File "/Users/thoffman/.venvs/rva312/lib/python3.12/site-packages/torch/nn/modules/module.py", line 2643, in load_state_dict
+    raise RuntimeError(
+RuntimeError: Error(s) in loading state_dict for MLP:
+	While copying the parameter named "norm.centre.xx", whose dimensions in the model are torch.Size([1, 1, 64, 64]) and whose dimensions in the checkpoint are torch.Size([1, 1, 64, 64]), an exception occurred : ('unsupported operation: more than one element of the written-to tensor refers to a single memory location. Please clone() the tensor before performing the operation.',).
+	While copying the parameter named "norm.centre.yy", whose dimensions in the model are torch.Size([1, 1, 64, 64]) and whose dimensions in the checkpoint are torch.Size([1, 1, 64, 64]), an exception occurred : ('unsupported operation: more than one element of the written-to tensor refers to a single memory location. Please clone() the tensor before performing the operation.',).

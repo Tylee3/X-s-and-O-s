@@ -1,0 +1,21 @@
+cnn: 285,634 parameters, 510 train / 93 val images
+epoch   1  train loss 0.690 acc 0.520   val loss 0.640 acc 0.710 *
+epoch   2  train loss 0.656 acc 0.635   val loss 0.516 acc 0.957 *
+epoch   5  train loss 0.477 acc 0.778   val loss 0.236 acc 0.968 *
+epoch  10  train loss 0.400 acc 0.810   val loss 0.154 acc 0.968
+epoch  12  train loss 0.359 acc 0.824   val loss 0.124 acc 0.978 *
+epoch  15  train loss 0.339 acc 0.833   val loss 0.115 acc 0.968
+epoch  20  train loss 0.362 acc 0.847   val loss 0.085 acc 0.978
+epoch  25  train loss 0.274 acc 0.859   val loss 0.128 acc 0.946
+epoch  30  train loss 0.320 acc 0.857   val loss 0.092 acc 0.957
+epoch  35  train loss 0.296 acc 0.857   val loss 0.100 acc 0.957
+epoch  40  train loss 0.295 acc 0.880   val loss 0.084 acc 0.957
+epoch  45  train loss 0.287 acc 0.871   val loss 0.072 acc 0.957
+epoch  50  train loss 0.279 acc 0.865   val loss 0.086 acc 0.968
+epoch  53  train loss 0.309 acc 0.861   val loss 0.073 acc 0.989 *
+epoch  55  train loss 0.279 acc 0.871   val loss 0.078 acc 0.968
+epoch  60  train loss 0.277 acc 0.875   val loss 0.075 acc 0.978
+
+best val acc 0.989   confusion [[O->O 38, O->X 0], [X->O 1, X->X 54]]
+outputs -> runs/cnn_cs4/  (1 val mistakes)
+DONE

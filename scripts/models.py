@@ -43,6 +43,61 @@ class BackgroundNormalize(nn.Module):
         return torch.clamp(dark / peak, 0.0, 1.0)
 
 
+class CentreScale(nn.Module):
+    """[B,1,64,64] ink image (ink bright, 0..1) -> same, with the symbol MOVED TO THE CENTRE and
+    ZOOMED TO A STANDARD SIZE.  The same idea as the classic MNIST digit preprocessing.
+
+    Why: the website never crops.  A small drawing, or a photo taken from further back, puts a
+    small symbol somewhere in the frame.  The MLP and the perceptron look at FIXED pixel
+    positions, so a small O is a different input to them than a big O (measured: below half the
+    frame both fall to coin-flip).  After this layer, every symbol arrives the same size, centred.
+
+    How, with no learnable parameters:
+      w      = max(ink - 0.2, 0)                 weights: real ink only, faint noise ignored
+      centre = weighted mean of pixel coordinates (the ink's centre of mass)
+      size   = (weighted mean of distance^P)^(1/P) from the centre (how big the symbol is).
+               P=4, not 2: with the plain RMS (P=2) an X looked smaller than it is, because much
+               of its ink sits near the crossing; X's got over-zoomed and their arms were cut off.
+               P=4 lets the far ink count more (measured: 92% of an X's ink stays in frame vs 83%).
+      zoom   = size / TARGET                     >1 shrinks a big symbol, <1 enlarges a small one
+      output = bilinear resample of the ink image on a grid centred at `centre`, spaced by `zoom`
+    Every op (sums, sqrt, GridSample) is a standard ONNX op, so it ships inside the .onnx file.
+    """
+
+    def __init__(self, size: int = SIZE, power: int = 4, target: float = 0.65):
+        super().__init__()
+        self.power, self.target = power, target      # target = symbol radius in normalised coords [-1,1], chosen by a sweep
+        lin = (torch.arange(size, dtype=torch.float32) + 0.5) / size * 2 - 1           # pixel centres in [-1,1]
+        yy, xx = torch.meshgrid(lin, lin, indexing="ij")
+        # .clone(): meshgrid returns views that share memory, which load_state_dict cannot write into
+        self.register_buffer("xx", xx[None, None].clone()); self.register_buffer("yy", yy[None, None].clone())
+        self.register_buffer("grid0", torch.stack([xx, yy], dim=-1)[None].clone())     # [1,H,W,2] identity grid
+
+    def forward(self, ink):
+        w = torch.clamp(ink - 0.2, min=0.0)
+        mass = torch.clamp(w.sum(dim=(2, 3), keepdim=True), min=1e-3)
+        cx = (w * self.xx).sum(dim=(2, 3), keepdim=True) / mass
+        cy = (w * self.yy).sum(dim=(2, 3), keepdim=True) / mass
+        d2 = (self.xx - cx) ** 2 + (self.yy - cy) ** 2
+        size = ((w * d2 ** (self.power / 2)).sum(dim=(2, 3), keepdim=True) / mass + 1e-6) ** (1.0 / self.power)
+        zoom = torch.clamp(size / self.target, 0.2, 1.5)                               # [B,1,1,1]
+        shift = torch.cat([cx, cy], dim=-1).reshape(-1, 1, 1, 2)                        # [B,1,1,2]
+        grid = self.grid0 * zoom.reshape(-1, 1, 1, 1) + shift
+        return F.grid_sample(ink, grid, mode="bilinear", padding_mode="zeros", align_corners=False)
+
+
+class Normalize(nn.Module):
+    """The models' shared front end: BackgroundNormalize (lighting) then CentreScale (size/position)."""
+
+    def __init__(self, centre: bool = True, power: int = 4):
+        super().__init__()
+        self.bg = BackgroundNormalize()
+        self.centre = CentreScale(power=power) if centre else nn.Identity()
+
+    def forward(self, x):
+        return self.centre(self.bg(x))
+
+
 # ----------------------------------------------------------------------------- #
 # Classifier 1
 # ----------------------------------------------------------------------------- #
@@ -71,9 +126,9 @@ class ManualPerceptron(nn.Module):
     optimizer, no loss, no backward pass anywhere near this class.
     """
 
-    def __init__(self, weights=(1.0, -1.0, 0.0, 0.0), bias=-0.3):
+    def __init__(self, weights=(1.0, -1.0, 0.0, 0.0), bias=-0.3, centre: bool = True, power: int = 4):
         super().__init__()
-        self.norm = BackgroundNormalize()
+        self.norm = Normalize(centre, power)
         masks = region_masks()
         self.register_buffer("masks", torch.stack([masks[k] for k in FEATURE_NAMES]).float())  # [4,64,64]
         self.register_buffer("w", torch.tensor(weights, dtype=torch.float32))
@@ -105,9 +160,9 @@ class MLP(nn.Module):
               playground contract requires the 2-logit form, ordered (O, X).
     """
 
-    def __init__(self, size: int = SIZE, hidden=(128, 64), dropout: float = 0.3):
+    def __init__(self, size: int = SIZE, hidden=(128, 64), dropout: float = 0.3, centre: bool = True, power: int = 4):
         super().__init__()
-        self.norm = BackgroundNormalize()
+        self.norm = Normalize(centre, power)
         layers, n_in = [], size * size
         for n_out in hidden:
             layers += [nn.Linear(n_in, n_out), nn.ReLU(), nn.Dropout(dropout)]

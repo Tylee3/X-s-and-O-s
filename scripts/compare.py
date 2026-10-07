@@ -28,13 +28,15 @@ def load_trained(name):
     hist = json.load(open(Path("runs") / name / "history.json"))
     a = hist["args"]
     kw = dict(hidden=tuple(a["hidden"]), dropout=a["dropout"]) if a["model"] == "mlp" else dict(dropout=a["dropout"])
+    kw["centre"] = (not a["no_centre"]) if "no_centre" in a else False     # runs before the CentreScale layer had none
+    kw["power"] = a.get("centre_power", 2)                                  # the first CentreScale runs used plain RMS
     m = build(a["model"], **kw)
     m.load_state_dict(torch.load(Path("runs") / name / "best.pt")); m.eval()
     return m, hist
 
 
-def all_models():
-    mlp, h_mlp = load_trained("mlp"); cnn, h_cnn = load_trained("cnn")
+def all_models(mlp_run="mlp", cnn_run="cnn"):
+    mlp, h_mlp = load_trained(mlp_run); cnn, h_cnn = load_trained(cnn_run)
     return {"perceptron": P.make_model(), "mlp": mlp, "cnn": cnn}, h_mlp, h_cnn
 
 

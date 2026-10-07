@@ -107,6 +107,8 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--wd", type=float, default=1e-4, help="weight decay: shrink every weight a little each step (L2)")
     ap.add_argument("--no-augment", action="store_true")
+    ap.add_argument("--no-centre", action="store_true", help="drop the CentreScale layer (the pre-2026-10-07 models)")
+    ap.add_argument("--centre-power", type=int, default=4, help="CentreScale size measure power (2 = plain RMS, the first try)")
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
     set_seed(args.seed)
@@ -118,6 +120,8 @@ def main():
     train_dl = DataLoader(train_ds, batch_size=args.batch, shuffle=True)
     val_dl = DataLoader(val_ds, batch_size=256)
     kw = dict(hidden=tuple(args.hidden), dropout=args.dropout) if args.model == "mlp" else dict(dropout=args.dropout)
+    kw["centre"] = not args.no_centre
+    kw["power"] = args.centre_power
     model = build(args.model, **kw)
     print(f"{args.model}: {count_params(model):,} parameters, {len(train_ds)} train / {len(val_ds)} val images")
 

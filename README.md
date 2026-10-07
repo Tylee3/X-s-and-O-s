@@ -94,3 +94,20 @@ photos were upscaled 4x before segmenting. The exported CNN scored 100% on the 3
 crops from two uncropped photos; its failures are faint light-coloured strokes in fragment boxes,
 and symbols smaller than ~1/3 of the frame. Final CNN = `runs/cnn` (zoom-out + faint-stroke
 augmentation); `runs/cnn_scale_only` is the zoom-out-only run kept for comparison.
+
+## Centre-and-zoom layer (2026-10-07, shipped)
+
+The site sends the whole canvas or photo, uncropped, so a small drawing stays small. The MLP and
+perceptron read fixed pixel positions and called small O's X. Every model now has a second
+parameter-free front layer, `models.CentreScale`: find the ink's centre of mass and its size
+(power-4 mean distance, so an X's far arms count and it is not over-zoomed), then resample with
+GridSample so the symbol is centred at a standard size. Verified in onnxruntime-web 1.22 (the
+site's runtime) with `scripts/web_runtime_check.py`; drawings simulated with `scripts/canvas_sim.py`.
+
+```bash
+$PY scripts/compare_runs.py mlp_v2_nocentre mlp cnn_v2_nocentre cnn     # results/old_vs_new.txt
+```
+
+New runs are `runs/mlp`, `runs/cnn`; the pre-layer runs are kept as `runs/*_v2_nocentre`.
+Trade-off: tight photo crops lose a little (CNN 100 -> 97% live), uncropped photos and drawings gain
+a lot (CNN 80 -> 97% at a third of the frame; MLP and CNN 100% on drawings of every size).
